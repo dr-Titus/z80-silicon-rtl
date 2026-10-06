@@ -37,6 +37,7 @@ The reverse-engineering path was as follows:
 
 - **100% Manual Work:** No AI or automated logic-extraction tools were used. The logic was untangled entirely by hand.
 
+<img width="1773" height="1489" alt="Z80-Example-Transistor-Gate" src="https://github.com/user-attachments/assets/0e6265ff-1cf1-447f-ac0b-217b39ffb646" />
 
 ## Usage & Testing
 This repository provides the raw Verilog core files. The core is designed to be a direct drop-in replacement. You can integrate the `.v` files directly into your existing FPGA projects or C++/Verilator simulation wrappers.
@@ -51,7 +52,6 @@ The complete pre-configured simulation package, test environment, and project di
 
 ## Current Status: 0.9.0-alpha
 The core has successfully passed all standard Z80 tests available to me, showing a 100% match with the native Zilog NMOS Z80. 
-- **Hardware Status:** Rigorously tested in software (Verilator), but not yet synthesized or tested on real FPGA hardware.
 
 
 ## Notes
