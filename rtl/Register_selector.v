@@ -8,7 +8,7 @@
 //
 // Component: Register_selector.v (Register Selection Logic)
 //
-// Version: 0.9.0-alpha (Initial Experimental Preview)
+// Version: 0.9.1-alpha
 //
 // Engineer: Andrey Titov (dr.Titus)
 // Create Date: 2024-10-18
@@ -17,14 +17,14 @@
 // References: 
 //   - Project repository: https://github.com/dr-Titus/z80-silicon-rtl/ 
 //
-// Copyright (c) 2024-2026 Andrey Titov (dr.Titus). All rights reserved.
+// Copyright (c) 2022-2026 Andrey Titov (dr.Titus). All rights reserved.
 // This source code is licensed under the GNU General Public License v3 (GPL v3).
 //
 // ==============================================================================
 
 //----------------------------------------------------------------------
 //
-//                      Модуль выбора регистрвых пар                   
+//                      Модуль выбора регистровых пар                   
 //
 //----------------------------------------------------------------------
 module Register_selector(
@@ -41,16 +41,16 @@ module Register_selector(
     input        sel_acc,                                       // Сигнал выбора аккумулятора по умолчанию
     input        idx_set,                                       // Набор команд DD/FD (индексная адресация)
     input        grp_idx,                                       // Группа команд, работающая с индексной адресацией
-    input        grp_wrdata,                                    // Группа команд, записываюих данные в память
-    input        grp_dst_af,                                    // Группа команд с приемником AF
+    input        grp_wrdata,                                    // Группа команд, записывающих данные в память
+    input        grp_dst_af,                                    // Группа команд с регистром-приемником AF
     input        grp_block,                                     // Группа блочных команд
-    input        grp_m_hl,                                      // Группа команд работающих с (HL)
+    input        grp_m_hl,                                      // Группа команд, работающих с (HL)
     input        grp_sp,                                        // Группа команд, использующих стек (SP)
     input        grp_dir16,                                   	// Группа команд LD (nn),dd / LD dd,(nn)
     input        grp_store16,                                   // Группа команд LD (nn),dd 
     input        add_sub_hl,                                    // Группа команд ADD/SUB HL
     input        sel_rst_nmi_im1,                               // Группа команд RST/NMI/IM 1
-    input        sel_im2,                                       // Сигнал прерывамия IM2
+    input        sel_im2,                                       // Сигнал прерывания IM2
    	input        join_rp,                                       // Сигнал обьединения основного банка регистров и банка регистров-указателей     
  
     output       sel_af,                                        // Сигнал выбора регистра AF
@@ -67,13 +67,12 @@ module Register_selector(
     output       sel_wz,                                        // Сигнал выбора регистра WZ
     output       sel_pc,                                        // Сигнал выбора регистра PC    
     output       sel_ir                                        	// Сигнал выбора регистра IR
-
     );
 
     wire        req_af;                                         // Сигнал группы команд, запрашивающих регистр AF
     wire        req_hl;                                         // Сигнал группы команд, запрашивающих регистр HL
     wire        req_de;                                         // Сигнал группы команд, запрашивающих регистр DE
-    wire        req_bc;                                         // Сигнал группы команд, запрашивающих регистр DE
+    wire        req_bc;                                         // Сигнал группы команд, запрашивающих регистр BC
     wire        req_sp;                                         // Сигнал группы команд, запрашивающих регистр SP
     wire        req_pc;                                         // Сигнал группы команд, запрашивающих регистр PC
     wire        req_dd;                                         // Сигнал группы команд, запрашивающих регистр HL/DE/BC/SP
@@ -159,28 +158,27 @@ module Register_selector(
                           .req_pc(req_pc));                             // Сигнал группы команд, запрашивающих регистр PC
 
 
-
 //---------------------------------------------------------------------- Триггеры выбора набора регистров
 
-    always @ (negedge clk)                                              // Триггер переключение банков регистров AF/AF' (/CLK)
+    always @ (negedge clk)                                              // Триггер переключения банков регистров AF/AF' (/CLK)
     begin
         if (m[1] & t[1] & pla[39])                                      // EX AF,AF'
             switch_exaf <= ~switch_exaf;                              	// Поменять значение триггера на противоположное
     end
 
-    always @ (negedge clk)                                              // Триггер переключение банков регистров HL/DE/BC /HL'/DE'/BC' (/CLK)
+    always @ (negedge clk)                                              // Триггер переключения банков регистров HL/DE/BC /HL'/DE'/BC' (/CLK)
     begin
         if (m[1] & t[2] & pla[1])                                       // EXX
             switch_exx <= ~switch_exx;                                	// Поменять значение триггера на противоположное
     end
 
-    always @ (negedge clk)                                              // Триггер переключение регистров DE/HL для основного набора (/CLK)
+    always @ (negedge clk)                                              // Триггер переключения регистров DE/HL для основного набора (/CLK)
     begin
         if (m[1] & t[2] & pla[2] & switch_exx)                          // EX DE,HL
             switch_exde_base <= ~switch_exde_base;                    	// Поменять значение триггера на противоположное
     end
 
-    always @ (negedge clk)                                              // Триггер переключение регистров DE/HL для альтернативного набора (/CLK)
+    always @ (negedge clk)                                              // Триггер переключения регистров DE/HL для альтернативного набора (/CLK)
     begin
         if (m[1] & t[2] & pla[2] & ~switch_exx)                       	// EX DE,HL
             switch_exde_alt <= ~switch_exde_alt;                      	// Поменять значение триггера на противоположное
@@ -213,7 +211,7 @@ module Register_selector(
     assign sel_hl_idx = (req_pair & ~reg_n[1] & reg_n[2]) |           	// Выбор регистровой пары HL/IDX
                         req_hl;                                         //
                             
-    assign sel_hl_set = sel_hl_idx & ~allow_idx;                      	// Выбиор регистровой пары HL
+    assign sel_hl_set = sel_hl_idx & ~allow_idx;                      	// Выбор регистровой пары HL
 
     assign sel_bc_set = (req_pair & ~reg_n[1] & ~reg_n[2]) |        	// Выбор регистровой пары BC
                         req_bc;                                         //
@@ -248,20 +246,8 @@ module Register_selector(
     assign sel_wz = ~(req_pc | req_pair | req_sp | req_hl |             // Выбор регистровой пары WZ
                       req_de | req_idx  | req_bc | sel_ir |             //
                       sel_af_set);                                      // 
-                            
-              			               			                 			  
-//---------------------------------------------------------------------- 
-
-
+                                          			               			                 			  
 endmodule
-
-
-
-
-
-
-
-
 
 
 
@@ -273,8 +259,8 @@ module Dec_req_sp(                                                      // Де�
     input [6:1]  t,                                                     // Такты
     input [5:1]  m,                                                     // Машинные циклы  
     input        grp_sp,                                                // Группа команд, использующих стек (SP)
-    input        grp_wrdata,                                            // Группа команд, записываюих данные в память
-    input        sel_im2,                                               // Сигнал прерывамия IM 2
+    input        grp_wrdata,                                            // Группа команд, записывающих данные в память
+    input        sel_im2,                                               // Сигнал прерывания IM 2
     output       req_sp                                                 // Сигнал группы команд, запрашивающих регистр SP
     );
 
@@ -314,7 +300,7 @@ module Dec_req_hl(                                                      // Де�
     input [5:1]  m,                                                     // Машинные циклы  
     input        grp_block,                                             // Группа блочных команд
     input        add_sub_hl,                                            // Группа команд ADD/SUB HL
-    input        grp_m_hl,                                              // Группа команд работающих с (HL)
+    input        grp_m_hl,                                              // Группа команд, работающих с (HL)
     output       req_hl                                                 // Сигнал группы команд, запрашивающих регистр HL
     );
 
@@ -337,8 +323,8 @@ module Dec_req_af(                                                      // Де�
     input [98:0] pla,                                                   // Шина ПЛМ
     input [6:1]  t,                                                     // Такты
     input [5:1]  m,                                                     // Машинные циклы  
-    input        grp_dst_af,                                            // Группа команд с приемником AF
-    input        grp_wrdata,                                            // Группа команд, записываюих данные в память
+    input        grp_dst_af,                                            // Группа команд с регистром-приемником AF
+    input        grp_wrdata,                                            // Группа команд, записывающих данные в память
     output       req_af                                                 // Сигнал группы команд, запрашивающих регистр AF
     );
 
@@ -359,7 +345,7 @@ module Dec_req_dd(                                                      // Де�
     input        grp_dir16,                                           	// Группа команд LD (nn),dd / LD dd,(nn)
     input        grp_store16,                                           // Группа команд LD (nn),dd 
     input        add_sub_hl,                                            // Группа команд ADD/SUB HL
-    input        grp_wrdata,                                            // Группа команд, записываюих данные в память
+    input        grp_wrdata,                                            // Группа команд, записывающих данные в память
     output       req_dd                                                 // Сигнал группы команд, запрашивающих регистр HL/DE/BC/SP
     );
 
@@ -379,7 +365,7 @@ module Dec_req_pc(                                                      // Де�
     input [6:1]  t,                                                     // Такты
     input [5:1]  m,                                                     // Машинные циклы  
     input        sel_rst_nmi_im1,                                       // Группа команд RST/NMI/IM 1
-    input        sel_im2,                                               // Сигнал прерывамия IM 2
+    input        sel_im2,                                               // Сигнал прерывания IM 2
     input        grp_block,                                             // Группа блочных команд
     output       req_pc                                                 // Сигнал группы команд, запрашивающих регистр PC
     );

@@ -8,7 +8,7 @@
 //
 // Component: Registers.v (Register File)
 //
-// Version: 0.9.0-alpha (Initial Experimental Preview)
+// Version: 0.9.1-alpha
 //
 // Engineer: Andrey Titov (dr.Titus)
 // Create Date: 2024-10-18
@@ -17,7 +17,7 @@
 // References: 
 //   - Project repository: https://github.com/dr-Titus/z80-silicon-rtl/ 
 //
-// Copyright (c) 2024-2026 Andrey Titov (dr.Titus). All rights reserved.
+// Copyright (c) 2022-2026 Andrey Titov (dr.Titus). All rights reserved.
 // This source code is licensed under the GNU General Public License v3 (GPL v3).
 //
 // ==============================================================================
@@ -51,21 +51,19 @@ module Registers(                                               // Модуль 
     input       write_regl,                                     // Сигнал записи данных в младшую часть выбранного регистра с шины HBUS_IN / FBUS_IN (только для F и F')
     input       write_pcr,                                      // Сигнал записи в регистр IR или PC
     input       read_regh,                                      // Сигнал чтения данных из старшей части выбранного регистра на шину HBUS_OUT
-    input       read_regl,                                      // Сигнал чтения данных из младшей части выбранного регистра на шину HBUS_OUT / FBUS_IN (только для F и F')
+    input       read_regl,                                      // Сигнал чтения данных из младшей части выбранного регистра на шину HBUS_OUT / FBUS_OUT (только для F и F')
 
     input [7:0] data_in,                                        // Внешняя шина данных (ввод)
     input       sel_data_read,                                  // Сигнал чтения данных с внешней шины 
 
-
-    input [7:0]  hbus_in,                                       // Шина данных для записи в регистры, старшая часть HBUS_IN
-    input [7:0]  fbus_in,                                       // Шина данных для записи в регистры, младшая часть FBUS_IN (только для F и F')
-    input [15:0] pcrbus_in,                                     // Шина данных для записи в регистры IR и PC, или во все регистры при JOIN_RP = 1
+    input [7:0]   hbus_in,                                      // Шина данных для записи в регистры, старшая часть HBUS_IN
+    input [7:0]   fbus_in,                                      // Шина данных для записи в регистры, младшая часть FBUS_IN (только для F и F')
+    input [15:0]  pcrbus_in,                                    // Шина данных для записи в регистры IR и PC, или во все регистры при JOIN_RP = 1
     
     output [7:0]  hbus_out,                                     // Шина данных для чтения регистра, старшая часть HBUS_OUT
     output [7:0]  fbus_out,                                     // Шина данных для чтения регистра, младшая часть FBUS_OUT (только для F и F')
     output [15:0] pcrbus_out                                    // Шина данных для чтения регистров IR и PC, или всех регистров при JOIN_RP = 1
     );
-    
      
     wire [7:0]  hmix_in;                                        // Шина мультиплексирования HBUS/DBUS
     wire [15:0] allbus;                                         // Шина обьединенного значения записи в два банка регистров
@@ -102,7 +100,7 @@ module Registers(                                               // Модуль 
               reg_sph,                                          //
               reg_wzh;                                          //     
                
-    reg [7:0] reg_f,                                            // Основноий набор регистров, младший байт (Low)
+    reg [7:0] reg_f,                                            // Основной набор регистров, младший байт (Low)
               reg_f_,                                           //
               reg_l,                                            //
               reg_l_,                                           //
@@ -162,14 +160,14 @@ module Registers(                                               // Модуль 
        
     assign hmix_in = sel_data_read ?                                    // Если активен сигнал чтения внешней шины данных SEL_DATA_READ,
                      data_in :                                          // то на шину HMIX_IN подается значение DATA_IN,
-                     hbus_in;                                           // Иначе на шину HMIX_IN подается значение HBUS_IN
+                     hbus_in;                                           // иначе на шину HMIX_IN подается значение HBUS_IN
     
 	assign allbus = write_pcr ? pcrbus_in : {hmix_in, hmix_in};			// Если активна запись WRITE_PCR, то источником обьединенной шины является PCRBUS_IN,
 																		// иначе источником является HMIX_IN
    
     assign regl = sel_acc ?                                             // Если активен SEL_ACC, то
                   fbus_in :                                             // на шину REGL выдается значение FBUS_IN,   
-                  (join_rp ? allbus[7:0] : hmix_in);                    // иначе если не активен JOIN_RP, на шину REGL подается ALLBUS[7:0], иначе HMIX_IN,
+                  (join_rp ? allbus[7:0] : hmix_in);                    // иначе если не активен JOIN_RP, на шину REGL подается ALLBUS[7:0], иначе HMIX_IN
 
    
     assign regh = join_rp ?                                             // Если активен JOIN_RP,
@@ -222,7 +220,7 @@ module Registers(                                               // Модуль 
 
     always @ (negedge clk)                                              // Запись в основной набор регистров, старшая часть (High)
     begin                                                               
-        if (wr_regh)                                                    // Если зпаись в старпую половину регистра, то
+        if (wr_regh)                                                    // Если запись в старпую половину регистра, то
         begin
             if (sel_af)
                 reg_a   <= regh;
@@ -254,7 +252,7 @@ module Registers(                                               // Модуль 
 //---------------------------------------------------------------------- Запись в регистры-указатели
     
     assign ptrmux_in = join_rp ?                                        // Если активен JOIN_RP, то
-                       allbus :                                         // на PTRMUX_IN подается PCRBUS_IN и ALLBUS,
+                       allbus :                                         // на PTRMUX_IN подается ALLBUS,
                        pcrbus_in;                                       // иначе подается PCRBUS_IN
     
     assign ptrh = ptrmux_in[15:8];                                      // Определение половинок шины PTRMUX_IN
@@ -263,7 +261,7 @@ module Registers(                                               // Модуль 
 
     always @ (negedge clk)                                              // Запись в регистры-указатели, младшая часть (Low)
     begin
-        if (wr_ptrl)                                                    // Если зпаись в младшую половину регистра-указателя, то
+        if (wr_ptrl)                                                    // Если запись в младшую половину регистра-указателя, то
         begin
             if (sel_ir)
                 reg_r   <= ptrl;
@@ -275,7 +273,7 @@ module Registers(                                               // Модуль 
 
     always @ (negedge clk)                                              // Запись в регистры-указатели, старшая часть (High)
     begin
-        if (wr_ptrh)                                                    // Если зпаись в старшую половину регистра-указателя, то
+        if (wr_ptrh)                                                    // Если запись в старшую половину регистра-указателя, то
         begin
             if (sel_ir)
                 reg_i   <= ptrh; 
@@ -286,7 +284,7 @@ module Registers(                                               // Модуль 
                                           
 //---------------------------------------------------------------------- Формирование шин чтения регистров                                
       
-    assign regout = ({reg_a,   reg_f}   & {16{sel_af}})  |              // Вывод обьединенного значения основного набора регистров на внутреннюю шину regmix
+    assign regout = ({reg_a,   reg_f}   & {16{sel_af}})  |              // Вывод обьединенного значения основного набора регистров на внутреннюю шину REGOUT
                     ({reg_a_,  reg_f_}  & {16{sel_af_}}) |              //
                     ({reg_h,   reg_l}   & {16{sel_hl}})  |              //
                     ({reg_h_,  reg_l_}  & {16{sel_hl_}}) |              //
@@ -299,7 +297,7 @@ module Registers(                                               // Модуль 
                     ({reg_sph, reg_spl} & {16{sel_sp}})  |              // 
                     ({reg_wzh, reg_wzl} & {16{sel_wz}});                //       
 
-    assign ptrout = ({reg_i,   reg_r}   & {16{sel_ir}}) |               // Вывод обьединенного значения регистров указателей на внутреннюю шину ptrmix
+    assign ptrout = ({reg_i,   reg_r}   & {16{sel_ir}}) |               // Вывод обьединенного значения регистров указателей на внутреннюю шину PTROUT
                     ({reg_pch, reg_pcl} & {16{sel_pc}});                //
 
                  
@@ -326,8 +324,8 @@ module Registers(                                               // Модуль 
 //---------------------------------------------------------------------- Вывод данных на шину PCRBUS_OUT 
 
     assign pcrbus_out = join_rp ?                                       // Если сигнал обьединения банков регистров JOIN_RP активен, то
-                        allres :                                        // на шину PCRBUS_OUT выдается обьединенное значение PTROUT и REGOUT,
-                        ptrres;                                         // иначе на шину PCRBUS_OUT выдается значение PTROUT 
+                        allres :                                        // на шину PCRBUS_OUT выдается обьединенное значение REGRES и PTRRES,
+                        ptrres;                                         // иначе на шину PCRBUS_OUT выдается значение PTRRES 
   
 //---------------------------------------------------------------------- Вывод данных на шины HBUS_OUT/FBUS_OUT  
   
@@ -338,12 +336,10 @@ module Registers(                                               // Модуль 
   	assign fbus_out = regbus_sum[7:0];                                  // На шину FBUS_OUT всегда выдаем младшую часть REGBUS_SUM
                                                                                            
     assign hbus_out = (read_regh ?                                     // На шину HBUS_OUT выдается смесь данных с двух шин:
-                       regbus_sum[15:8] : 0) |                         // Если активен READ_REGH, то данные сo старшей части REGBUS_SUM,
+                       regbus_sum[15:8] : 0) |                         // Если активен READ_REGH, то данные со старшей части REGBUS_SUM,
                       ((read_regl & ~sel_acc) ?                        // Если активен READ_REGL и не активен SEL_ACC, то данные с младшей части REGBUS_SUM
                        regbus_sum[7:0] : 0);                           //
                                  
-
-
 endmodule
 
 
