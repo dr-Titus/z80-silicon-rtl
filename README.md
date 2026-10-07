@@ -1,6 +1,6 @@
 # Z80 NMOS Silicon-to-RTL CPU Core
 
-**Version:** 0.9.0-alpha  
+**Version:** 0.9.1-alpha  
 **Author:** Andrey Titov (dr.Titus)  
 **License:** GPL v3  
 
@@ -50,7 +50,7 @@ The complete pre-configured simulation package, test environment, and project di
 **[ZX-PK.ru - EmuStudio v0.9 test 48 (Pentagon RTL)](https://zx-pk.ru/threads/34173-revers-inzhiniring-z80.html?p=1229078&viewfull=1#post1229078)**
 
 
-## Current Status: 0.9.0-alpha
+## Current Status: 0.9.1-alpha
 The core has successfully passed all standard Z80 tests available to me, showing a 100% match with the native Zilog NMOS Z80. 
 
 
