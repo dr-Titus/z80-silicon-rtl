@@ -8,11 +8,11 @@
 //
 // Component: Register_selector.v (Register Selection Logic)
 //
-// Version: 0.9.1-alpha
+// Version: 1.0.0
 //
 // Engineer: Andrey Titov (dr.Titus)
 // Create Date: 2024-10-18
-// Release Date: 2026-09-26
+// Release Date: 2026-11-13
 //
 // References: 
 //   - Project repository: https://github.com/dr-Titus/z80-silicon-rtl/ 
